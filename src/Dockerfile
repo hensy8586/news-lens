@@ -1,27 +1,25 @@
 FROM python:3.11-slim
 
-# Set workdir
+# Prevent Python from writing .pyc files and buffer stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory inside the container
 WORKDIR /app
 
-# Install system deps if needed (e.g. gcc, for some wheels)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy only requirements first for better build cache
-COPY ../requirements.txt ./requirements.txt
-
+# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY . /app/backend
+# Copy backend (FastAPI) and Streamlit code into the image
+COPY src ./src
+COPY app ./app
 
-# Expose port (not strictly required, but good practice)
+# Railway will set PORT, but default to 8000 for local use
+ENV PORT=8000
 EXPOSE 8000
 
-# Default command: uvicorn
-# Most hosts set PORT env; fall back to 8000
-ENV PORT=8000
-
-CMD ["sh", "-c", "uvicorn backend.app.main:app --host 0.0.0.0 --port ${PORT}"]
+# Start FastAPI via uvicorn
+# src/main.py must define: app = FastAPI(...)
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT}"]
