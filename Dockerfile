@@ -16,9 +16,8 @@ RUN pip install --no-cache-dir --upgrade pip \
 COPY src ./src
 COPY app ./app
 
-# Railway will set PORT, but default to 8000 for local use
-ENV PORT=8000
-EXPOSE 8000
+# Railway will set PORT, default to 8080
+EXPOSE 8080
 
 # Start FastAPI via uvicorn
 # src/main.py must define: app = FastAPI(...)
