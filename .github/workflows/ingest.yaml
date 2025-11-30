@@ -2,7 +2,7 @@ name: RSS Ingestion
 
 on:
   schedule:
-    - cron: "*/30 * * * *"      # run every 30 minutes
+    - cron: "0 */6 * * *"      # run every 6 hours
   workflow_dispatch:            # allow manual runs from the UI
 
 jobs:
