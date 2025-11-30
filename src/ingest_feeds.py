@@ -5,7 +5,7 @@ from supabase import create_client
 from openai import OpenAI   # if you want LLM summaries
 
 from .rss_sources import RSS_FEEDS
-from .rss_utils import fetch_rss_articles, fetch_article_fulltext
+from .rss_utils import fetch_rss_articles, fetch_article_fulltext, extract_headline_image
 
 
 def get_supabase_client():
@@ -26,6 +26,7 @@ def fetch_rss_items():
         )
         for article in feed_articles:
             article["content_text"] = fetch_article_fulltext(article["link"])
+            article["image_url"] = extract_headline_image(article["link"])
 
         all_items.extend(feed_articles)
     return all_items

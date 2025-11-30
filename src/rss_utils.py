@@ -5,6 +5,9 @@ from typing import List, Dict, Any, Optional
 import trafilatura
 import hashlib
 import uuid
+from bs4 import BeautifulSoup
+import requests
+import json
 
 
 def parse_entry_published(entry: Dict[str, Any]) -> Optional[datetime]:
@@ -48,7 +51,8 @@ def extract_entry_content(entry: Dict[str, Any]) -> Optional[str]:
 
 
 def make_article_id(source_outlet: str, link: str) -> str:
-    """Deterministic UUID based on (source_outlet, link)."""
+    """ Deterministic UUID based on (source_outlet, link) """
+
     key = f"{source_outlet}::{link}".encode("utf-8")
     digest = hashlib.sha256(key).digest()  # 32 bytes
     uid = uuid.UUID(bytes=digest[:16])     # take first 16 bytes as UUID
@@ -89,6 +93,8 @@ def fetch_rss_articles(
 
 
 def fetch_article_fulltext(url: str, debug: bool = False) -> str | None:
+    """ Fetch full text given the link to an article """
+
     # Normalize to https for safety
     if url.startswith("http://"):
         url = "https://" + url[len("http://"):]
@@ -117,3 +123,36 @@ def fetch_article_fulltext(url: str, debug: bool = False) -> str | None:
         text = None
 
     return text
+
+
+def extract_headline_image(url):
+    """ Extract headline image url (if applicable) from the given article link """
+
+    html = requests.get(url, timeout=10).text
+    soup = BeautifulSoup(html, "html.parser")
+
+    candidates = []
+
+    meta_props = ["og:image", "og:image:url", "twitter:image", "twitter:image:src"]
+    for prop in meta_props:
+        tag = soup.find("meta", attrs={"property": prop}) or soup.find("meta", attrs={"name": prop})
+        if tag and tag.get("content"):
+            candidates.append(tag["content"])
+
+    # JSON-LD parsing
+    for script in soup.find_all("script", type="application/ld+json"):
+        try:
+            data = json.loads(script.text)
+            if isinstance(data, dict):
+                if data.get("image"):
+                    if isinstance(data["image"], str):
+                        candidates.append(data["image"])
+                    elif isinstance(data["image"], list):
+                        candidates.extend(data["image"])
+                if data.get("thumbnailUrl"):
+                    candidates.append(data["thumbnailUrl"])
+        except:
+            pass
+
+    return candidates[0] if candidates else None
+
