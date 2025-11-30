@@ -50,6 +50,7 @@ def _prepare_rows(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "title": a.get("title"),
             "summary": a.get("summary"),
             "link": link,
+            "image_url": a.get("image_url"),
             "published_at": a.get("published_at"),
             "content_html": a.get("content_html"),
             "content_text": a.get("content_text"),

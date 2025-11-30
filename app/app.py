@@ -17,11 +17,11 @@ API_BASE = st.secrets.get(
 # ---------- Streamlit page setup ----------
 
 st.set_page_config(
-    page_title="US ↔ China News Summaries",
+    page_title="News Lens",
     layout="wide",
 )
 
-st.title("US ↔ China News Summaries")
+st.title("News Lens (your personal news feed)")
 st.caption(f"Using API base: `{API_BASE}`")
 
 # Controls
