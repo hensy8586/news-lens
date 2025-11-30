@@ -80,7 +80,7 @@ def fetch_rss_articles(
             "summary": entry.get("summary") or entry.get("description"),
             "content_html": content_html,
             "link": link,
-            "published_at": published_at,
+            "published_at": published_at.isoformat(),
             "raw_entry": entry,     # keep for debugging/enrichment
         }
         articles.append(article)
