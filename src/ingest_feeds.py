@@ -86,7 +86,7 @@ def upsert_news_items(client, items: List[Dict[str, Any]], chunk_size: int = 100
             client.table("articles")
             .upsert(
                 batch,
-                on_conflict=["link", "published_at"],  # unique identifier
+                on_conflict="link,published_at",  # unique identifier
                 ignore_duplicates=False
             )
             .execute()
