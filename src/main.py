@@ -31,7 +31,7 @@ def health_check():
 def get_latest_news(limit: int = 20):
     client = get_supabase_client()
     resp = (
-        client.table("news_items")
+        client.table("articles")
         .select("*")
         .order("published_at", desc=True)
         .limit(limit)

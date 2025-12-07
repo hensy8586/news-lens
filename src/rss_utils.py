@@ -50,10 +50,10 @@ def extract_entry_content(entry: Dict[str, Any]) -> Optional[str]:
     return None
 
 
-def make_article_id(source_outlet: str, link: str) -> str:
+def make_article_id(published_dt: str, link: str) -> str:
     """ Deterministic UUID based on (source_outlet, link) """
 
-    key = f"{source_outlet}::{link}".encode("utf-8")
+    key = f"{published_dt}::{link}".encode("utf-8")
     digest = hashlib.sha256(key).digest()  # 32 bytes
     uid = uuid.UUID(bytes=digest[:16])     # take first 16 bytes as UUID
     return str(uid)
@@ -74,7 +74,7 @@ def fetch_rss_articles(
         link = entry.get("link")
 
         article = {
-            "id": make_article_id(source_outlet, link),
+            "id": make_article_id(published_at.isoformat(), link),
             "source_type": "rss",
             "source_outlet": source_outlet,
             "region": region,       # e.g. "us", "europe", "world"
