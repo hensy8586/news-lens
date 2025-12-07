@@ -32,6 +32,18 @@ def fetch_rss_items():
     return all_items
 
 
+def _dedupe_items_by_key(items, key="id"):
+    seen = set()
+    deduped = []
+    for item in items:
+        val = item.get(key)
+        if val in seen:
+            continue
+        seen.add(val)
+        deduped.append(item)
+    return deduped
+
+
 def _prepare_rows(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     rows = []
     for a in news_items:
@@ -56,7 +68,7 @@ def _prepare_rows(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "content_text": a.get("content_text"),
             "raw_entry": a.get("raw_entry"),
         })
-    return rows
+    return _dedupe_items_by_key(rows, key="id")
 
 
 def _chunks(lst, n):
