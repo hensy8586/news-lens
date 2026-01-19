@@ -33,11 +33,13 @@ card_css()
 st.title("News Lens (your personal news feed)")
 st.caption(f"Using API base: `{API_BASE}`")
 
-# Controls
-with st.sidebar:
-    st.header("Options")
-    limit = st.slider("Number of articles", min_value=5, max_value=50, value=20, step=5)
-    show_raw = st.checkbox("Show raw summary text", value=True)
+# ---------- State: how many articles to show ----------
+
+ORIGINAL_NO_ARTICLES = 20
+ARTICLES_INCREMENT = 20
+
+if "limit" not in st.session_state:
+    st.session_state.limit = ORIGINAL_NO_ARTICLES  # start with 20
 
 
 # ---------- Helper: call FastAPI ----------
@@ -56,12 +58,11 @@ def fetch_latest_news(limit: int):
         ) from e
     return resp.json()
 
-
 # ---------- Main content ----------
 
 try:
     with st.spinner("Loading latest news from API..."):
-        news_items = fetch_latest_news(limit)
+        news_items = fetch_latest_news(st.session_state.limit)
 except Exception as e:
     st.error("Could not load data from the FastAPI backend.")
     st.code(str(e))
@@ -163,6 +164,16 @@ for idx, item in enumerate(news_items):
 
     with cols[idx % num_cols]:
         st.markdown(card_html, unsafe_allow_html=True)
+
+# ---------- Load more button at the end ----------
+
+col_left, col_mid, col_right = st.columns([1, 2, 1])
+
+with col_mid:
+    if st.button("More articles (+20)", use_container_width=True):
+        st.session_state.limit += ARTICLES_INCREMENT
+        st.rerun()
+
 
 
 # # After rendering all cards, open modal if a card is selected
