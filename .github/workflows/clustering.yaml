@@ -1,0 +1,43 @@
+name: Clustering (Phase A)
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # every 30 minutes
+  workflow_dispatch:
+
+concurrency:
+  group: ai-processing
+  cancel-in-progress: false
+
+jobs:
+  ai_process:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run clustering
+        run: python -m src.cluster_articles
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CLUSTER_LOOKBACK_HOURS: 72
+          CLUSTER_BATCH_LIMIT: 100
+          STORYLINE_SIM_THRESHOLD: 0.55
+          EVENT_SIM_THRESHOLD: 0.80
+          SUMMARY_VER: v1
+          CATS_VER: v1
+          EVENT_VER: v1
+          TITLE_VER: v1
+          TRANSLATE_VER: v1
+          STORYLINE_VER: v1

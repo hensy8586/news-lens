@@ -33,11 +33,13 @@ card_css()
 st.title("News Lens (your personal news feed)")
 st.caption(f"Using API base: `{API_BASE}`")
 
-# Controls
-with st.sidebar:
-    st.header("Options")
-    limit = st.slider("Number of articles", min_value=5, max_value=50, value=20, step=5)
-    show_raw = st.checkbox("Show raw summary text", value=True)
+# ---------- State: how many articles to show ----------
+
+ORIGINAL_NO_ARTICLES = 20
+ARTICLES_INCREMENT = 20
+
+if "limit" not in st.session_state:
+    st.session_state.limit = ORIGINAL_NO_ARTICLES  # start with 20
 
 
 # ---------- Helper: call FastAPI ----------
@@ -56,12 +58,11 @@ def fetch_latest_news(limit: int):
         ) from e
     return resp.json()
 
-
 # ---------- Main content ----------
 
 try:
     with st.spinner("Loading latest news from API..."):
-        news_items = fetch_latest_news(limit)
+        news_items = fetch_latest_news(st.session_state.limit)
 except Exception as e:
     st.error("Could not load data from the FastAPI backend.")
     st.code(str(e))
@@ -71,7 +72,11 @@ if not news_items:
     st.info("No news items returned from the API yet.")
     st.stop()
 
-for item in news_items:
+# 3-column grid; tweak number for wider/narrower cards
+num_cols = 3
+cols = st.columns(num_cols)
+
+for idx, item in enumerate(news_items):
     title = item.get("title") or "(no title)"
     source = item.get("source_outlet") or "(unknown source)"
     link = item.get("link")
@@ -80,30 +85,28 @@ for item in news_items:
     content_text = item.get("content_text") or ""
     image_url = item.get("image_url")
 
-    # Build a clean summary (your existing logic)
+    # Build summary used in the inline detail block
     if summary_raw:
         summary = clean_summary(summary_raw)
     elif content_text:
-        summary = (content_text[:400] + "...") if len(content_text) > 400 else content_text
+        summary = (content_text[:600] + "...") if len(content_text) > 600 else content_text
     else:
-        summary = ""
+        summary = "No summary available for this article."
 
     # Escape for HTML
     title_html = html.escape(title)
     source_html = html.escape(source)
     published_html = html.escape(published_at) if published_at else ""
     summary_html = html.escape(summary)
-    link_html = html.escape(link, quote=True) if link else ""
 
     meta_parts = [f"Source: {source_html}"]
     if published_html:
         meta_parts.append(f"Published: {published_html}")
     meta_html = " · ".join(meta_parts)
 
-    # ---------- Decide what URL the card should open ----------
     # Prefer original article link; if missing, fall back to data: URL with full content_text
+    link_html = html.escape(link, quote=True) if link else ""
     target_url = None
-
     if link_html:
         target_url = link_html
     elif content_text:
@@ -125,32 +128,141 @@ for item in news_items:
         data_url = "data:text/html;charset=utf-8," + urllib.parse.quote(content_html)
         target_url = data_url
 
-    # ---------- Card HTML ----------
-    # Build the inner card structure once
-    inner_card_html = f"""
-<div class="news-card">
-    <div class="news-card-inner">
-    <div class="news-card-image">
-        {'<img src="' + image_url + '" alt="thumbnail">' if image_url else ''}
-    </div>
-    <div class="news-card-content">
-        <div class="news-card-title">{title_html}</div>
-        <div class="news-card-meta">{meta_html}</div>
-        <div class="news-card-summary">{summary_html}</div>
-    </div>
-    </div>
-</div>
-"""
-
-    # If we have a target URL, wrap the card in an <a> so the whole card is clickable
+    # Build the HTML for one article card + inline detail block
+    # Clicking the card (summary) toggles open/closed, pushing content below down.
+    detail_link_html = ""
     if target_url:
-        card_html = f"""
-<a href="{target_url}" target="_blank" class="news-card-link-wrapper">
-    {inner_card_html}
-</a>
-"""
-    else:
-        # No URL available – just render a non-clickable card
-        card_html = inner_card_html
+        detail_link_html = (
+            f'<div class="news-detail-link">'
+            f'<a href="{target_url}" target="_blank" rel="noopener noreferrer">'
+            f'Open original article →'
+            f'</a></div>'
+        )
 
-    st.markdown(card_html, unsafe_allow_html=True)
+    card_html = f"""
+<details class="news-details">
+  <summary>
+    <div class="news-card">
+      <div class="news-card-inner">
+        <div class="news-card-image">
+          {'<img src="' + image_url + '" alt="thumbnail">' if image_url else ''}
+        </div>
+        <div class="news-card-content">
+          <div class="news-card-title">{title_html}</div>
+          <div class="news-card-meta">{meta_html}</div>
+        </div>
+      </div>
+    </div>
+  </summary>
+
+  <div class="news-detail-panel">
+    <div class="news-detail-summary">{summary_html}</div>
+    {detail_link_html}
+  </div>
+</details>
+"""
+
+    with cols[idx % num_cols]:
+        st.markdown(card_html, unsafe_allow_html=True)
+
+# ---------- Load more button at the end ----------
+
+col_left, col_mid, col_right = st.columns([1, 2, 1])
+
+with col_mid:
+    if st.button("More articles (+20)", use_container_width=True):
+        st.session_state.limit += ARTICLES_INCREMENT
+        st.rerun()
+
+
+
+# # After rendering all cards, open modal if a card is selected
+# if selected_idx is not None and 0 <= selected_idx < len(news_items):
+#     show_article_dialog(news_items[selected_idx])
+#     # Optional: clear query params so it doesn't reopen next interaction
+#     st.query_params()
+
+
+# for item in news_items:
+#     title = item.get("title") or "(no title)"
+#     source = item.get("source_outlet") or "(unknown source)"
+#     link = item.get("link")
+#     published_at = item.get("published_at")
+#     summary_raw = item.get("summary")
+#     content_text = item.get("content_text") or ""
+#     image_url = item.get("image_url")
+
+#     # Build a clean summary (your existing logic)
+#     if summary_raw:
+#         summary = clean_summary(summary_raw)
+#     elif content_text:
+#         summary = (content_text[:400] + "...") if len(content_text) > 400 else content_text
+#     else:
+#         summary = ""
+
+#     # Escape for HTML
+#     title_html = html.escape(title)
+#     source_html = html.escape(source)
+#     published_html = html.escape(published_at) if published_at else ""
+#     summary_html = html.escape(summary)
+#     link_html = html.escape(link, quote=True) if link else ""
+
+#     meta_parts = [f"Source: {source_html}"]
+#     if published_html:
+#         meta_parts.append(f"Published: {published_html}")
+#     meta_html = " · ".join(meta_parts)
+
+#     # ---------- Decide what URL the card should open ----------
+#     # Prefer original article link; if missing, fall back to data: URL with full content_text
+#     target_url = None
+
+#     if link_html:
+#         target_url = link_html
+#     elif content_text:
+#         content_html = f"""
+#         <html>
+#           <head>
+#             <meta charset='utf-8'>
+#             <title>{title_html}</title>
+#           </head>
+#           <body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5; padding: 1.5rem; max-width: 800px; margin: 0 auto;">
+#             <h1>{title_html}</h1>
+#             <p style="color: #555;">{meta_html}</p>
+#             <pre style="white-space: pre-wrap; font-family: inherit; font-size: 1rem;">
+# {html.escape(content_text)}
+#             </pre>
+#           </body>
+#         </html>
+#         """
+#         data_url = "data:text/html;charset=utf-8," + urllib.parse.quote(content_html)
+#         target_url = data_url
+
+#     # ---------- Card HTML ----------
+#     # Build the inner card structure once
+#     inner_card_html = f"""
+# <div class="news-card">
+#     <div class="news-card-inner">
+#     <div class="news-card-image">
+#         {'<img src="' + image_url + '" alt="thumbnail">' if image_url else ''}
+#     </div>
+#     <div class="news-card-content">
+#         <div class="news-card-title">{title_html}</div>
+#         <div class="news-card-meta">{meta_html}</div>
+#         <div class="news-card-summary">{summary_html}</div>
+#     </div>
+#     </div>
+# </div>
+# """
+
+#     # If we have a target URL, wrap the card in an <a> so the whole card is clickable
+#     if target_url:
+#         card_html = f"""
+# <a href="{target_url}" target="_blank" class="news-card-link-wrapper">
+#     {inner_card_html}
+# </a>
+# """
+#     else:
+#         # No URL available – just render a non-clickable card
+#         card_html = inner_card_html
+
+#     st.markdown(card_html, unsafe_allow_html=True)
