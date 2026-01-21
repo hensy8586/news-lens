@@ -1,0 +1,56 @@
+name: Publish Prep (Phase B)
+
+on:
+  schedule:
+    # Daily 02:00 UTC
+    - cron: "00 02 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-phase-b
+  cancel-in-progress: false
+
+jobs:
+  publish_phase_b:
+    name: Prepare storyline digests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run publish digest
+        run: python -m src.publish_digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+
+          # Selection knobs
+          PUBLISH_LOOKBACK_HOURS: 72
+          PUBLISH_TOP_N_STORYLINES: 6
+          PUBLISH_K_ARTICLES_PER_STORYLINE: 3
+          PUBLISH_MIN_ARTICLES_PER_STORYLINE: 2
+          PUBLISH_MIN_SOURCES_PER_STORYLINE: 2
+
+          # Processing knobs
+          MAX_CHARS_FOR_LLM: 12000
+          SLEEP_BETWEEN_ARTICLES_SEC: 0.2
+
+          # Prompt versions
+          SUMMARY_VER: v1
+          DIGEST_EN_VER: v1
+          DIGEST_ZH_VER: v1
+          POLISH_ZH_TITLE_VER: v1
+
+          # Optional behavior flags
+          ENABLE_ZH_TITLE_POLISH: "true"

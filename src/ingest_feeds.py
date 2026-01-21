@@ -17,8 +17,10 @@ def fetch_rss_items() -> List[Dict[str, Any]]:
     """
     Ingest RSS items (no AI). Enrich each item with fulltext + headline image.
     """
+
     all_items: List[Dict[str, Any]] = []
     for feed_dict in RSS_FEEDS.values():
+        filtered_articles = []
         feed_articles = fetch_rss_articles(
             feed_url=feed_dict["feed_url"],
             source_outlet=feed_dict["sub_source"],
@@ -32,10 +34,14 @@ def fetch_rss_items() -> List[Dict[str, Any]]:
             link = article.get("link")
             if not link:
                 continue
-            article["content_text"] = fetch_article_fulltext(link)
-            article["image_url"] = extract_headline_image(link)
 
-        all_items.extend(feed_articles)
+            content_text = fetch_article_fulltext(link)
+            if isinstance(content_text, str) and len(content_text) > 1000:
+                article["content_text"] = content_text
+                article["image_url"] = extract_headline_image(link)
+                filtered_articles.append(article)
+
+        all_items.extend(filtered_articles)
 
     return all_items
 
@@ -53,6 +59,7 @@ def _make_dedupe_key(a: Dict[str, Any]) -> Optional[Tuple[str, str]]:
     Note: published_at should be normalized consistently by fetch_rss_articles
     (ideally ISO string).
     """
+
     link = a.get("link")
     published_at = a.get("published_at")
     if not link or not published_at:
@@ -82,6 +89,7 @@ def _prepare_rows(news_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     IMPORTANT: We explicitly set ai_eligible/archived defaults for NEW ingested items.
     This prevents surprises if defaults ever change and makes the pipeline intent clear.
     """
+
     rows: List[Dict[str, Any]] = []
 
     for a in news_items:

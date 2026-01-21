@@ -1,16 +1,5 @@
-# NOTE(HY): Based on information from ChatGPT below; holding off on getting news from Reuters and AP
-
-# ON **REUTERS**
-# Reuters used to publish an official RSS directory (e.g. reuters/topNews, reuters/worldNews).
-# An archived version shows that pattern. However, since then they’ve tightened up crawling and
-# RSS access, and people often use bridge services or custom scraping instead.
-
-# ON **AP NEWS**
-# AP used to provide RSS directly; now they no longer do so officially.
-# Options:
-# 1) Skip AP in your first version and rely on AP content via aggregators (GNews/NewsAPI/etc.).
-# 2) Use Google News RSS filtered for site:apnews.com if that fits your risk appetite and ToS.
-# 3) Use a third-party generator that turns AP pages into RSS (again, check ToS carefully).
+# NOTE(HY): Currently using Google News to fetch media articles from multiple sources
+# Google controls what to provide via its url; it's on a "relevance" base rather than chronological
 
 RSS_FEEDS = {
     "BBC World": {
@@ -58,13 +47,13 @@ RSS_FEEDS = {
         "topic_region": "eu",
         "language": "en"
     },
-    "NPR": {
-        "feed_url": "https://feeds.npr.org/1001/rss.xml",
-        "source": "NPR",
-        "sub_source": "NPR",
-        "source_region": "na",
-        "source_country": "us",
-        "topic_region": "world",
+    "Google News": {
+        "feed_url": "https://news.google.com/rss",
+        "source": "Google News",
+        "sub_source": "Google News",
+        "source_region": "google",
+        "source_country": "google",
+        "topic_region": "google",
         "language": "en"
     }
 }
