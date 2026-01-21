@@ -9,3 +9,4 @@ python-dotenv==0.21.0
 python-dateutil==2.9.0post0
 trafilatura==2.0.0
 beautifulsoup4==4.14.3
+googlenewsdecoder==0.1.7

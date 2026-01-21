@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  ai_process:
+  clustering:
     runs-on: ubuntu-latest
 
     steps:
